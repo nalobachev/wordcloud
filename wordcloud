@@ -1,48 +1,199 @@
-<!DOCTYPE html >
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <script src="https://cdn.anychart.com/releases/v8/js/anychart-base.min.js"></script>
-    <script src="https://cdn.anychart.com/releases/v8/js/anychart-tag-cloud.min.js"></script>
-    <title>Wordcloud</title>
-    <style type="text/css">
-        h1 {
-            font-size: 120%;
-            font-family: Verdana, Arial, Helvetica, sans-serif;
-            color: #333366;
+    <title>Tagcloud</title>
+    <style>
+        html, body{
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
         }
     </style>
     <style>
-        html, body, #chart {
-            width: 100%;
-            height: 100%;
+        #word-cloud{
+            height: 100vh;
+            width: 200vh;
+            margin: 1% auto;
+        }
+    </style>
+    <style>
+        a {
+            text-decoration: none;
         }
     </style>
 </head>
 <body>
-<h1>Wordcloud</h1>
-<div id="chart"></div>
+<div id="word-cloud"></div>
 <script>
-    anychart.onDocumentReady(function() {
-        let words = [
-            {x: "some", value: 1},
-            {x: "words", value: 1},
-            {x: "to", value: 1},
-            {x: "create", value: 1},
-            {x: "random", value: 1},
-            {x: "wordcloud", value: 1},
-        ];
-        let wordcloud = anychart.tagCloud(words);
-        wordcloud.name = "Name";
-        wordcloud.angles([0]);
-        wordcloud.textSpacing(25);
-        wordcloud.container("chart");
-        wordcloud.listen("pointClick", function(e){
-            let url = "https://www.youtube.com/results?search_query=" + e.point.get("x");
-            window.open(url, "_blank");
-        });
-        wordcloud.draw();
-    });
+    let config = {
+        trace: true,
+        spiralResolution: 1, //Lower = better resolution
+        spiralLimit: 360 * 5,
+        lineHeight: 0.8,
+        xWordPadding: 3,
+        yWordPadding: 3,
+        font: "Helvetica"
+    };
+
+
+    let cloud = document.getElementById("word-cloud");
+    cloud.style.position = "relative";
+    cloud.style.fontFamily = config.font;
+
+    colors = ['mediumslateblue', 'crimson', 'steelblue', 'darkcyan', 'mediumspringgreen', 'orange',  ];
+
+    let startPoint = {
+        x: cloud.offsetWidth / 2,
+        y: cloud.offsetHeight / 2
+    };
+
+    let wordsDown = [];
+
+    function shuffle(a){
+        let j;
+        let temp;
+        for(let i = a.length - 1; i > 0; i--){
+            j = Math.floor(Math.random()*(i + 1));
+            temp = a[j];
+            a[j] = a[i];
+            a[i] = temp;
+        }
+        return a;
+    }
+
+    function createWordObject(word) {
+        let wordContainer = document.createElement("div");
+        wordContainer.style.position = "absolute";
+        wordContainer.style.fontSize =  100 + "px";
+        wordContainer.style.lineHeight = config.lineHeight;
+        wordContainer.style.color = colors[Math.floor(Math.random() * colors.length)];
+        // wordContainer.style.transform = "translateY(-50%)";
+        w = document.createTextNode(word);
+        let a = document.createElement('a');
+        a.href = "https://onomedia.today/?type=search&value=trend_val";
+        a.appendChild(w);
+        wordContainer.appendChild(a);
+        return wordContainer;
+    }
+
+    function placeWord(word, x, y) {
+
+        cloud.appendChild(word);
+        word.style.left = x - word.offsetWidth/2 + "px";
+        word.style.top = y - word.offsetHeight/2 + "px";
+
+        wordsDown.push(word.getBoundingClientRect());
+    }
+
+
+    function spiral(i, callback) {
+        let angle = config.spiralResolution * i;
+        x = (1 + angle) * Math.cos(angle);
+        y = (1 + angle) * Math.sin(angle);
+        return callback ? callback() : null;
+    }
+
+    function intersect(word, x, y) {
+        cloud.appendChild(word);
+
+        word.style.left = x - word.offsetWidth/2 + "px";
+        word.style.top = y - word.offsetHeight/2 + "px";
+
+        let currentWord = word.getBoundingClientRect();
+
+        cloud.removeChild(word);
+
+        for(var i = 0; i < wordsDown.length; i+=1){
+            var comparisonWord = wordsDown[i];
+
+            if(!(currentWord.right + config.xWordPadding < comparisonWord.left - config.xWordPadding ||
+                currentWord.left - config.xWordPadding > comparisonWord.right + config.xWordPadding ||
+                currentWord.bottom + config.yWordPadding < comparisonWord.top - config.yWordPadding ||
+                currentWord.top - config.yWordPadding > comparisonWord.bottom + config.yWordPadding)){
+
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+
+    let people = [];
+    let places = [];
+    let things = [];
+    let whatUrl = "https://api.onomedia.today/api/trends/what";
+    let whoUrl = "https://api.onomedia.today/api/trends/who";
+    let whereUrl = "https://api.onomedia.today/api/trends/where";
+
+    let firstRequest = new XMLHttpRequest();
+    firstRequest.open('GET', whereUrl);
+    firstRequest.responseType = 'json';
+    firstRequest.send();
+    firstRequest.onload = function(){
+        let where = firstRequest.response;
+        for (let i = 0; i <= 5; i++){
+            places.push(where[`${i}`])
+        }
+    };
+
+    let secondRequest = new XMLHttpRequest();
+    secondRequest.open('GET', whatUrl);
+    secondRequest.responseType = 'json';
+    secondRequest.send();
+    secondRequest.onload = function(){
+        let what = secondRequest.response;
+        for (let i = 0; i <= 5; i++){
+            things.push(what[`${i}`])
+        }
+        let request = new XMLHttpRequest();
+        request.open('GET', whoUrl);
+        request.responseType = 'json';
+        request.send();
+        request.onload = function() {
+            let who = request.response;
+            for (let i = 0; i <= 5; i++) {
+                people.push(who[`${i}`])
+            }
+            let words = [];
+            words.push(...people,...places,...things);
+            shuffle(words);
+            (function placeWords() {
+                for (let i = 0; i < words.length; i ++) {
+
+                    let word = createWordObject(words[i]);
+
+                    for (var j = 0; j < config.spiralLimit; j++) {
+                        //If the spiral function returns true, we've placed the word down and can break from the j loop
+                        if (spiral(j, function () {
+                            if (!intersect(word, startPoint.x + x, startPoint.y + y)) {
+                                placeWord(word, startPoint.x + x, startPoint.y + y);
+                                return true;
+                            }
+                        })) {
+                            break;
+                        }
+                    }
+                }
+
+            })();
+            (function colorLinks() {
+                let links = document.getElementsByTagName('a');
+                for (let i = 0; i < links.length; i++) {
+                    links[i].style.color = colors[Math.floor(Math.random() * colors.length)];
+                }
+            })();
+    };
+
+        (function colorLinks() {
+            let links = document.getElementsByTagName('a');
+            for (let i = 0; i < links.length; i++) {
+                links[i].style.color = colors[Math.floor(Math.random() * colors.length)];
+            }
+        })();
+    }
 </script>
 </body>
 </html>
