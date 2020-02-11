@@ -13,9 +13,10 @@
     </style>
     <style>
         #word-cloud{
-            height: 100vh;
+            height: 115vh;
             width: 200vh;
             margin: 1% auto;
+            font-size: 250%;
         }
     </style>
     <style>
@@ -30,11 +31,11 @@
     let config = {
         trace: true,
         spiralResolution: 1, //Lower = better resolution
-        spiralLimit: 360 * 5,
+        spiralLimit: 500 * 5,
         lineHeight: 0.8,
-        xWordPadding: 3,
+        xWordPadding: 4,
         yWordPadding: 3,
-        font: "Helvetica"
+        font: "Aileron"
     };
 
 
@@ -42,7 +43,11 @@
     cloud.style.position = "relative";
     cloud.style.fontFamily = config.font;
 
-    colors = ['mediumslateblue', 'crimson', 'steelblue', 'darkcyan', 'mediumspringgreen', 'orange',  ];
+    colors = ['#103c5a',
+        '#80697c',
+        '#908a96',
+        '#a2570a',
+        '#291a0b'];
 
     let startPoint = {
         x: cloud.offsetWidth / 2,
@@ -63,16 +68,34 @@
         return a;
     }
 
+    function titleCase(word){
+        if (word.includes('-')){
+            let temp = word.toLowerCase().split('-');
+            for (let i = 0;i < temp.length; i++){
+                temp[i] = temp[i][0].toUpperCase() + temp[i].slice(1);
+            }
+            return (temp.join('-'));
+        }
+        else{
+            let temp = word.toLowerCase().split(' ');
+            for (let i = 0;i < temp.length; i++){
+                temp[i] = temp[i][0].toUpperCase() + temp[i].slice(1);
+            }
+            return (temp.join(' '));
+        }
+    }
+
     function createWordObject(word) {
         let wordContainer = document.createElement("div");
         wordContainer.style.position = "absolute";
-        wordContainer.style.fontSize =  100 + "px";
         wordContainer.style.lineHeight = config.lineHeight;
-        wordContainer.style.color = colors[Math.floor(Math.random() * colors.length)];
-        // wordContainer.style.transform = "translateY(-50%)";
+        //wordContainer.style.color = colors[Math.floor(Math.random() * colors.length)];
+        wordContainer.style.transform = "translateY(-50%)";
         w = document.createTextNode(word);
         let a = document.createElement('a');
-        a.href = "https://onomedia.today/?type=search&value=trend_val";
+        a.href = "https://onomedia.today/dev?type=search&value=";
+        let titleWord = titleCase(word);
+        a.href += titleWord;
         a.appendChild(w);
         wordContainer.appendChild(a);
         return wordContainer;
@@ -89,9 +112,6 @@
 
 
     function spiral(i, callback) {
-        let angle = config.spiralResolution * i;
-        x = (1 + angle) * Math.cos(angle);
-        y = (1 + angle) * Math.sin(angle);
         return callback ? callback() : null;
     }
 
@@ -164,10 +184,20 @@
                 for (let i = 0; i < words.length; i ++) {
 
                     let word = createWordObject(words[i]);
+                    word.style.color = colors[i];
 
-                    for (var j = 0; j < config.spiralLimit; j++) {
+                    for (let j = 0; j < config.spiralLimit; j++) {
                         //If the spiral function returns true, we've placed the word down and can break from the j loop
                         if (spiral(j, function () {
+                            let angle = config.spiralResolution * j;
+                            let x = (1 + angle) * 2 *Math.sin(angle);
+                            if (Math.random() < 0.5){
+                                x -= Math.floor(Math.random() * 75);
+                            }
+                            else {
+                                x += Math.floor(Math.random() * 75);
+                            }
+                            let y = (1 + angle) *1.2* Math.cos(angle);
                             if (!intersect(word, startPoint.x + x, startPoint.y + y)) {
                                 placeWord(word, startPoint.x + x, startPoint.y + y);
                                 return true;
@@ -185,7 +215,7 @@
                     links[i].style.color = colors[Math.floor(Math.random() * colors.length)];
                 }
             })();
-    };
+        };
 
         (function colorLinks() {
             let links = document.getElementsByTagName('a');
