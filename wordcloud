@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
     <title>Tagcloud</title>
@@ -50,19 +50,21 @@
 <div id="word-cloud"></div>
 
 <div class="loader">
-    <img src="../../Desktop/tagcloud/Spinner-1.3s-250px(1).gif" alt="Loading...">
+    <img src="spinner.gif" alt="Loading...">
 </div>
 
 <script>
     let config = {
         trace: true,
-        spiralResolution: 1, //Lower = better resolution
+        spiralResolution: 0.6,
         spiralLimit: 500 * 5,
         lineHeight: 0.8,
-        xWordPadding: 0,
+        xWordPadding: 1,
         yWordPadding: 2,
         font: "Aileron"
     };
+
+    let numberOfNotions = false;
 
     window.onresize = function(){location.reload(true);};
 
@@ -76,11 +78,6 @@
     cloud.style.position = "relative";
     cloud.style.fontFamily = config.font;
 
-    let traceCanvas = document.createElement("canvas");
-    traceCanvas.width = cloud.offsetWidth;
-    traceCanvas.height = cloud.offsetHeight;
-    let traceCanvasCtx = traceCanvas.getContext("2d");
-    cloud.appendChild(traceCanvas);
 
 
     let startPoint = {
@@ -107,7 +104,7 @@
         }
     }
 
-    function createWordObject(word, category, frequency) {
+    function createWordObject(word, category, frequency=3) {
         let wordContainer = document.createElement("div");
         wordContainer.style.position = "absolute";
         wordContainer.style.lineHeight = config.lineHeight;
@@ -124,6 +121,8 @@
         a.href = "https://onomedia.today/dev?type=search&value=";
         let titleWord = titleCase(word);
         a.href += titleWord;
+        a.target ="_blank";
+        a.title = "Нажмите на слово, чтобы узнать все новости о нем!";
         a.appendChild(w);
         wordContainer.appendChild(a);
         return wordContainer;
@@ -153,8 +152,8 @@
 
         cloud.removeChild(word);
 
-        for(var i = 0; i < wordsDown.length; i+=1){
-            var comparisonWord = wordsDown[i];
+        for(let i = 0; i < wordsDown.length; i+=1){
+            let comparisonWord = wordsDown[i];
 
             if(!(currentWord.right + config.xWordPadding < comparisonWord.left - config.xWordPadding ||
                 currentWord.left - config.xWordPadding > comparisonWord.right + config.xWordPadding ||
@@ -190,61 +189,77 @@
             let loader = document.querySelector(".loader");
             loader.className += " hidden";
             let where = firstRequest.response;
-            for (let i = 0; i <= 5; i++){
-                places.push(where[`${i}`])
-            }
             let what = secondRequest.response;
-            for (let i = 0; i <= 5; i++){
-                things.push(what[`${i}`])
-            }
             let request = new XMLHttpRequest();
             request.open('GET', whoUrl);
             request.responseType = 'json';
             request.send();
             request.onload = function() {
                 let who = request.response;
-                for (let i = 0; i <= 5; i++) {
-                    people.push(who[`${i}`])
-                }
                 let words = [];
-                words.push(...people,...places,...things);
-                
-                //words for example
-                /*words = [["ГОСДУМА",2], ["ВЛАДИМИР ЗЕЛЕНСКИЙ",2], ["МИД",5], ["АЛЛА ИЛЬИНА",3], ["СЕРГЕЙ ЛАВРОВ",5], ["ТУРЦИЯ",4],["ФСБ",3],["МВД",3],["БЕЛАРУСЬ",2],["СЛЕДСТВЕННЫЙ КОМИТЕТ",3],
-                    ["ФРГ",2],["ДМИТРИЙ ПЕСКОВ",3],["МИНСК",3],["БЕЛТА",2],["МИХАИЛ МИШУСТИН",6],["АЛЕКСАНДР ЛУКАШЕНКО",2],["КНР",4],["САНКТ-ПЕТЕРБУРГ",3]];
-                people = ["ВЛАДИМИР ЗЕЛЕНСКИЙ", "АЛЛА ИЛЬИНА", "СЕРГЕЙ ЛАВРОВ", "ДМИТРИЙ ПЕСКОВ", "МИХАИЛ МИШУСТИН","АЛЕКСАНДР ЛУКАШЕНКО"];
-                places = ["ТУРЦИЯ", "БЕЛАРУСЬ", "ФРГ", "МИНСК", "КНР", "САНКТ-ПЕТЕРБУРГ"];*/
+                words.push(...who,...where,...what);
 
-                words.sort(function(a, b) {
-                    if (a[1] < b[1])
-                        return 1;
-                    if (a[1] > b[1])
-                        return -1;
-                    if (a[1] == b[1]){
-                        if (a[0].length >= b[0].length)
+                if (words.length == 0)
+                    alert("Что-то пошло не так. Пожалуста, попробуйте позже...");
+
+                if (Number.isInteger(words[0][1]))
+                    numberOfNotions = true;
+
+
+                //words for example of wordcloud with frequencies
+                // words = [["ГОСДУМА",2], ["ВЛАДИМИР ЗЕЛЕНСКИЙ",2], ["МИД",5], ["АЛЛА ИЛЬИНА",3], ["СЕРГЕЙ ЛАВРОВ",5], ["ТУРЦИЯ",4],["ФСБ",3],["МВД",3],["БЕЛАРУСЬ",2],["СЛЕДСТВЕННЫЙ КОМИТЕТ",3],
+                //     ["ФРГ",2],["ДМИТРИЙ ПЕСКОВ",3],["МИНСК",3],["БЕЛТА",2],["МИХАИЛ МИШУСТИН",6],["АЛЕКСАНДР ЛУКАШЕНКО",2],["КНР",4],["САНКТ-ПЕТЕРБУРГ",3]];
+                // people = ["ВЛАДИМИР ЗЕЛЕНСКИЙ", "АЛЛА ИЛЬИНА", "СЕРГЕЙ ЛАВРОВ", "ДМИТРИЙ ПЕСКОВ", "МИХАИЛ МИШУСТИН","АЛЕКСАНДР ЛУКАШЕНКО"];
+                // places = ["ТУРЦИЯ", "БЕЛАРУСЬ", "ФРГ", "МИНСК", "КНР", "САНКТ-ПЕТЕРБУРГ"];
+
+                if (numberOfNotions) {
+                    words.sort(function (a, b) {
+                        if (a[1] < b[1])
+                            return 1;
+                        if (a[1] > b[1])
+                            return -1;
+                        if (a[1] == b[1]) {
+                            if (a[0].length >= b[0].length)
+                                return -1;
+                            else
+                                return 1;
+                        }
+                    });
+                }
+                else
+                    words.sort(function (a, b) {
+                        if (a.length >= b.length)
                             return -1;
                         else
                             return 1;
-                    }
+                    });
 
-                });
+
                 (function placeWords() {
                     for (let i = 0; i < words.length; i ++) {
-                        if (people.includes(words[i][0]))
-                            word = createWordObject(words[i][0],'person',words[i][1]);
-                        else if (places.includes(words[i][0]))
-                            word = createWordObject(words[i][0],'place',words[i][1]);
+                        if (numberOfNotions)
+                            if (who.includes(words[i][0]))
+                                word = createWordObject(words[i][0],'person',words[i][1]);
+                            else if (where.includes(words[i][0]))
+                                word = createWordObject(words[i][0],'place',words[i][1]);
+                            else
+                                word = createWordObject(words[i][0],'thing',words[i][1]);
                         else
-                            word = createWordObject(words[i][0],'thing',words[i][1]);
+                            if (who.includes(words[i]))
+                                word = createWordObject(words[i],'person');
+                            else if (where.includes(words[i]))
+                                word = createWordObject(words[i],'place');
+                            else
+                                word = createWordObject(words[i],'thing');
                         for (let j = 0; j < config.spiralLimit; j++) {
                             if (spiral(j, function () {
                                 let angle = config.spiralResolution * j;
                                 let x = (1 + angle) * 2 * Math.cos(angle);
                                 // if (Math.random() < 0.5){
-                                //     x -= Math.floor(Math.random() * 75);
+                                //     x -= Math.floor(Math.random() * 50);
                                 // }
                                 // else {
-                                //     x += Math.floor(Math.random() * 75);
+                                //     x += Math.floor(Math.random() * 50);
                                 // }
                                 let y = (1 + angle) * 1.5 * Math.sin(angle);
                                 if (!intersect(word, startPoint.x + x, startPoint.y + y)) {
